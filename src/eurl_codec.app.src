@@ -1,0 +1,12 @@
+{application, eurl_codec,
+ [
+  {description, "binary url-decode library for erlang"},
+  {vsn, "0.1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { eurl_codec_app, []}},
+  {env, []}
+ ]}.
