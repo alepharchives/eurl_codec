@@ -1,7 +1,7 @@
 {application, eurl_codec,
  [
   {description, "unicode binary-string url-decode library for erlang"},
-  {vsn, "0.2"},
+  {vsn, "0.3"},
   {registered, []},
   {applications, [
                   kernel,

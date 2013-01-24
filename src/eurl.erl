@@ -14,28 +14,37 @@
 %%% Created : 23 Jan 2013 by aj <AJ Heller <aj@drfloob.com>>
 %%%-------------------------------------------------------------------
 -module(eurl).
--export([decode/1, entity_decode/1, entity_decode/2]).
+-export([decode/1, percent_decode/1, entity_decode/1, entity_decode/2]).
 
 
-%% Decodes url-encoded binaries
+%% Decodes and resolved character entity references for url-encoded
+%% binaries
+%% 
+%% Example: <<"ユ">> = eurl:decode(<<"%26%2312518%3B">>).
 decode(Bin) when is_binary(Bin) ->
-    decode(Bin, <<>>).
+    entity_decode(percent_decode(Bin)).
 
-decode(<<$%, Hi, Lo, Rest/binary>>, Acc) ->
+
+
+percent_decode(Bin) ->
+    percent_decode(Bin, <<>>).
+
+percent_decode(<<$%, Hi, Lo, Rest/binary>>, Acc) ->
     Chr = decode_chr([Hi, Lo]),
-    decode(Rest, <<Acc/binary, Chr>>);
-decode(<<$+, Rest/binary>>, Acc) ->
-    decode(Rest, <<Acc/binary, $ >>);
-decode(<<X:8, Rest/binary>>, Acc) ->
-    decode(Rest, <<Acc/binary, X>>);
-decode(<<>>, Acc) ->
+    percent_decode(Rest, <<Acc/binary, Chr>>);
+percent_decode(<<$+, Rest/binary>>, Acc) ->
+    percent_decode(Rest, <<Acc/binary, $ >>);
+percent_decode(<<X:8, Rest/binary>>, Acc) ->
+    percent_decode(Rest, <<Acc/binary, X>>);
+percent_decode(<<>>, Acc) ->
     Acc.
 
 
 
 
-%% Decodes html entities from non-url-encoded binaries using the
-%% specified encoding (utf8 by default).
+%% Decodes html entity references from `eurl:decoded`ed binary-strings
+%% and encodes the result into the specified Encoding (utf8 by
+%% default).
 %% 
 %% Example: <<"ユ">> = entity_decode(<<"&#12518;">>).
 entity_decode(DecodedBin) ->
@@ -86,15 +95,14 @@ entity_code_to_chr(Code, Encoding) ->
 -include_lib("eunit/include/eunit.hrl").
 
 
-decode_test_() ->
+percent_decode_test_() ->
     [
-     ?_assertEqual(<<"a">>, decode(<<"a">>))
-     , ?_assertEqual(<<>>, decode(<<>>))
-     , ?_assertMatch(<<"arst&#12518;">>, decode(<<"arst%26%2312518%3B">>))
-     , ?_assertMatch(<<"&#31616;&#20307;&#20013;&#25991;">>, decode(<<"%26%2331616%3B%26%2320307%3B%26%2320013%3B%26%2325991%3B">>))
-     , ?_assertMatch(<<"&#931;&#8050; &#947;&#957;&#969;&#961;&#943;&#950;&#969; &#7936;&#960;&#8056;">>, decode(<<"%26%23931%3B%26%238050%3B+%26%23947%3B%26%23957%3B%26%23969%3B%26%23961%3B%26%23943%3B%26%23950%3B%26%23969%3B+%26%237936%3B%26%23960%3B%26%238056%3B">>))
-     , ?_assertMatch(<<"&#3649;&#3612;&#3656;&#3609;&#3604;&#3636;&#3609;&#3630;&#3633;&#3656;&#3609;&#3648;&#3626;&#3639;&#3656;&#3629;&#3617;&#3650;&#3607;&#3619;&#3617;&#3649;&#3626;&#3609;&#3626;&#3633;&#3591;&#3648;&#3623;&#3594;">>, decode(<<"%26%233649%3B%26%233612%3B%26%233656%3B%26%233609%3B%26%233604%3B%26%233636%3B%26%233609%3B%26%233630%3B%26%233633%3B%26%233656%3B%26%233609%3B%26%233648%3B%26%233626%3B%26%233639%3B%26%233656%3B%26%233629%3B%26%233617%3B%26%233650%3B%26%233607%3B%26%233619%3B%26%233617%3B%26%233649%3B%26%233626%3B%26%233609%3B%26%233626%3B%26%233633%3B%26%233591%3B%26%233648%3B%26%233623%3B%26%233594%3B">>))
-     %% , ?_assertMatch(<<"">>, decode(<<"">>))
+     ?_assertEqual(<<"a">>, eurl:percent_decode(<<"a">>))
+     , ?_assertEqual(<<>>, eurl:percent_decode(<<>>))
+     , ?_assertMatch(<<"arst&#12518;">>, eurl:percent_decode(<<"arst%26%2312518%3B">>))
+     , ?_assertMatch(<<"&#31616;&#20307;&#20013;&#25991;">>, eurl:percent_decode(<<"%26%2331616%3B%26%2320307%3B%26%2320013%3B%26%2325991%3B">>))
+     , ?_assertMatch(<<"&#931;&#8050; &#947;&#957;&#969;&#961;&#943;&#950;&#969; &#7936;&#960;&#8056;">>, eurl:percent_decode(<<"%26%23931%3B%26%238050%3B+%26%23947%3B%26%23957%3B%26%23969%3B%26%23961%3B%26%23943%3B%26%23950%3B%26%23969%3B+%26%237936%3B%26%23960%3B%26%238056%3B">>))
+     , ?_assertMatch(<<"&#3649;&#3612;&#3656;&#3609;&#3604;&#3636;&#3609;&#3630;&#3633;&#3656;&#3609;&#3648;&#3626;&#3639;&#3656;&#3629;&#3617;&#3650;&#3607;&#3619;&#3617;&#3649;&#3626;&#3609;&#3626;&#3633;&#3591;&#3648;&#3623;&#3594;">>, eurl:percent_decode(<<"%26%233649%3B%26%233612%3B%26%233656%3B%26%233609%3B%26%233604%3B%26%233636%3B%26%233609%3B%26%233630%3B%26%233633%3B%26%233656%3B%26%233609%3B%26%233648%3B%26%233626%3B%26%233639%3B%26%233656%3B%26%233629%3B%26%233617%3B%26%233650%3B%26%233607%3B%26%233619%3B%26%233617%3B%26%233649%3B%26%233626%3B%26%233609%3B%26%233626%3B%26%233633%3B%26%233591%3B%26%233648%3B%26%233623%3B%26%233594%3B">>))
 ].
 
 
@@ -130,6 +138,17 @@ entity_decode_test_() ->
      %% ... but it undestands these just fine.
      , ?_assertMatch(<<"aj">>, eurl:entity_decode(<<"&#97;&#106;">>, latin1))
     ].
+
+
+decode_test_() ->
+    [
+     ?_assertEqual(<<"a">>, eurl:decode(<<"a">>))
+     , ?_assertEqual(<<>>, eurl:decode(<<>>))
+     , ?_assertMatch(<<"arstユ">>, eurl:decode(<<"arst%26%2312518%3B">>))
+     , ?_assertMatch(<<"简体中文">>, eurl:decode(<<"%26%2331616%3B%26%2320307%3B%26%2320013%3B%26%2325991%3B">>))
+     , ?_assertMatch(<<"Σὲ γνωρίζω ἀπὸ">>, eurl:decode(<<"%26%23931%3B%26%238050%3B+%26%23947%3B%26%23957%3B%26%23969%3B%26%23961%3B%26%23943%3B%26%23950%3B%26%23969%3B+%26%237936%3B%26%23960%3B%26%238056%3B">>))
+     , ?_assertMatch(<<"แผ่นดินฮั่นเสื่อมโทรมแสนสังเวช">>, eurl:decode(<<"%26%233649%3B%26%233612%3B%26%233656%3B%26%233609%3B%26%233604%3B%26%233636%3B%26%233609%3B%26%233630%3B%26%233633%3B%26%233656%3B%26%233609%3B%26%233648%3B%26%233626%3B%26%233639%3B%26%233656%3B%26%233629%3B%26%233617%3B%26%233650%3B%26%233607%3B%26%233619%3B%26%233617%3B%26%233649%3B%26%233626%3B%26%233609%3B%26%233626%3B%26%233633%3B%26%233591%3B%26%233648%3B%26%233623%3B%26%233594%3B">>))
+].
 
 
 dummy_test_() ->
