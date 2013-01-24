@@ -14,8 +14,7 @@
 %%% Created : 23 Jan 2013 by aj <AJ Heller <aj@drfloob.com>>
 %%%-------------------------------------------------------------------
 -module(eurl).
--export([decode/1, encode/1]).
--export([entity_decode/1, entity_decode/2, entity_encode/1]).
+-export([decode/1, entity_decode/1, entity_decode/2]).
 
 
 %% Decodes url-encoded binaries
@@ -32,11 +31,6 @@ decode(<<X:8, Rest/binary>>, Acc) ->
 decode(<<>>, Acc) ->
     Acc.
 
-
-
-
-encode(_Bin) ->
-    not_done.
 
 
 
@@ -59,11 +53,6 @@ entity_decode(<<X:8, Rest/binary>>, Encoding, Acc) ->
 entity_decode(<<>>, _, Acc) ->
     Acc.
     
-
-entity_encode(_Bin) ->
-    not_done.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Private
