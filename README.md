@@ -1,6 +1,6 @@
 ## eurl_codec
 
-URL-encoded binary string encoding and decoding for erlang. See eunit tests in [`eurl.erl`](https://github.com/drfloob/eurl_codec/blob/master/src/eurl.erl) for usage examples.
+URL-encoded binary string encoding and decoding for erlang. See eunit tests in [`eurl.erl`](https://github.com/drfloob/eurl_codec/blob/master/src/eurl.erl#L94) for usage examples.
 
 ### Example
 
