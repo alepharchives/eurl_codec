@@ -70,8 +70,26 @@ entity_decode(<<>>, _, Acc) ->
 %% Private
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-decode_chr(Code) ->
-    httpd_util:hexlist_to_integer(Code).
+decode_chr(Code=[Hi, Lo]) ->
+    decode_chr2(is_hex_string(Code), Code).
+
+decode_chr2(true, Code) ->
+    httpd_util:hexlist_to_integer(Code);
+decode_chr2(false, Code) ->
+    error({invalid_percent_encoded_value, list_to_binary(Code)}).
+
+
+is_hex_string(Code) ->
+    lists:all(fun is_hex_char/1, Code).
+
+is_hex_char(X) when $0 =< X, X =< $9 -> true;
+is_hex_char(X) when $A =< X, X =< $F -> true;
+is_hex_char(X) when $a =< X, X =< $f -> true;
+is_hex_char(_) -> false.
+ 
+    
+		      
+
 
 
 find_entity_code(Bin) ->
@@ -81,12 +99,18 @@ find_entity_code(Bin) ->
 find_entity_code(<<$;, Rest/binary>>, Acc) ->
     {Acc, Rest};
 find_entity_code(<<X:8, Rest/binary>>, Acc) ->
-    find_entity_code(Rest, <<Acc/binary, X>>).
+    find_entity_code(Rest, <<Acc/binary, X>>);
+find_entity_code(<<>>, _Acc) ->
+    error({unterminated_entity_reference, _Acc}).
+
 
 
 entity_code_to_chr(Code, Encoding) ->
     %% io:format("entity_code_to_chr: ~p~n", [Code]),
-    unicode:characters_to_binary([list_to_integer(binary_to_list(Code))], unicode, Encoding).
+    Chr = try list_to_integer(binary_to_list(Code))
+	  catch error:badarg -> error({invalid_entity_reference, Code})
+	  end,
+    unicode:characters_to_binary([Chr], unicode, Encoding).
 
     
 
@@ -162,7 +186,23 @@ decode_test_() ->
 ].
 
 
+invalid_encoding_test_() ->
+    [
+     ?_assertError({invalid_percent_encoded_value, <<"%2">>}, eurl:percent_decode(<<"%%2312518%3B">>))
+     , ?_assertError({invalid_entity_reference, <<"1251A">>}, eurl:entity_decode(<<"&#1251A;">>))
+     , ?_assertError({unterminated_entity_reference, <<"1251">>}, eurl:entity_decode(<<"&#1251">>))
+
+     %% both unterminated and invalid; unterminated is found first
+     , ?_assertError({unterminated_entity_reference, <<"1251A">>}, eurl:entity_decode(<<"&#1251A">>))
+
+     %% ensure the shortcut method works identically
+     , ?_assertError({invalid_percent_encoded_value, <<"%2">>}, eurl:decode(<<"%%2312518%3B">>))
+     , ?_assertError({invalid_entity_reference, <<"1251A">>}, eurl:decode(<<"&#1251A;">>))
+     , ?_assertError({unterminated_entity_reference, <<"1251">>}, eurl:decode(<<"&#1251">>))
+    ].
+
 dummy_test_() ->
+    %% tl;dr: I crash
     [?_assertError(_, eurl:decode(1))
      , ?_assertError(_, eurl:decode("a"))
 
@@ -170,4 +210,7 @@ dummy_test_() ->
      , ?_assertError(_, eurl:entity_decode("a"))
 
     ].
+
+
+
 -endif.
